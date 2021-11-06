@@ -1,0 +1,73 @@
+<html>
+    <head>
+        <script type="text/javascript" src="https://unpkg.com/papaparse@5.3.1/papaparse.min.js"></script>
+	<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+	<style>
+	  html {
+	    font: 14px Arial;
+	  }
+	  #link {
+	    display: block;
+	    background: #808080;
+	    padding: 4px;
+	  }
+	  #link * {
+	    color: #fff;
+	  }
+	</style>
+    </head>
+    <body>
+        <input type="file" id="fileselector" accept=".csv">
+	<div id="viz"></div>
+	<div id="link">
+	  <span>How to use this:<span>
+	  <ol>
+	    <li>Create a spreadsheet with the following columns:
+	      ID, Label, ParentID, Values, and Resources</li>
+	    <li>Save as CSV</li>
+	    <li>Select it using the input box above ^</li>
+	  </ol>
+	</div>
+        <script>
+          Array.prototype.pluck = function(key) {
+            return this.map(function(object) { return object[key]; });
+          };
+	  document.addEventListener('DOMContentLoaded', function(event) {
+            const fileSelector = document.getElementById('fileselector');
+            fileSelector.addEventListener('change', (event) => {
+              const fileList = event.target.files;
+	      Papa.parse(fileList[0], {
+	        dynamicTyping: true,
+	        header: true,
+                complete: (results) => {
+		  const viz = document.querySelector("#viz");
+		  const tooltip = document.querySelector("#link");
+		  tooltip.innerHTML = "Select a resource above";
+		  Plotly.newPlot(viz,
+		    [{
+		      type: "treemap",
+		      ids: results.data.pluck("ID"),
+		      labels: results.data.pluck("Label"),
+		      parents: results.data.pluck("ParentID"),
+		      values: results.data.pluck("Values"),
+		      customdata: results.data.pluck("Resources"),
+		      hoverinfo: "label"
+		    }]
+		  );
+		  viz.on("plotly_click", (evt) => {
+		    let point = evt.points[0];
+		    if (point["customdata"] === null) {
+		      tooltip.innerHTML = "No resources found for " + point["label"];
+		    } else {
+		      tooltip.innerHTML = '<a href="' + point["customdata"] +
+		        '" target="_blank">Click here to see resources for ' +
+			point["label"] + '</a>';
+		    }
+		  });
+                }
+	      });
+            });
+	  })
+	</script>
+    </body>
+</html>
